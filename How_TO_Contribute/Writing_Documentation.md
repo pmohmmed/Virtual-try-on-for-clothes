@@ -1,6 +1,5 @@
-Certainly! Here's the updated structure in Markdown:
+# NOT FINISHED YET 
 
-markdown
 # Writing Functions 😎 :
 
 ### Naming Conventions:
@@ -9,21 +8,36 @@ markdown
 #### Inside a Class:
 - Functions inside the Class:
   - **Public:** Example: `add_numbers()`, `sub()`
-  - **Protected:** Example: `_add_numbers()`, `_sub()`
-  - **Private:** Example: `__add_numbers()`, `__sub()`
+  - **Protected:** Example: `_add_numbers()`, ` _sub() `
+  - **Private:** Example: `__add_numbers()`, ` __sub() `
 
-### Define The Type of the Parameters and the Output in Python3
+### Function Structure: 
+
+#### Define The Type of the Parameters and the Output in Python3
 ```python
 def add_numbers(x: int, y: int) -> int:
     result = x + y
     return result
+```
+#### Or if you don't know exactly the types of the parameters
+```python
+def test_function(p1, p2, p3):
+    """
+    test_function does blah blah blah.
+
+    :param p1: describe about parameter p1
+    :param p2: describe about parameter p2
+    :param p3: describe about parameter p3
+    :return: describe what it returns
+    """ 
 ```
 
 
 # Writing Variables 📝 :
 
 ### Naming Convention:
-- Variables (snake_case naming): Example: `my_name`, `name`
+- Variables ( snake_case naming): Example: `my_name`, `name`
+- Constant Variables (UPPER_Case) : `PI=3.14` , ` MY_VARIABLE `
 
 #### Inside a Class:
 - Attributes inside the Class:
@@ -44,7 +58,7 @@ def add_numbers(x: int, y: int) -> int:
 
 ### Naming Convention:
 - Modules (Module is a Python file like `main.py`):
-  - Use lowercase names with underscores to separate words. Example: `my_file`, `preprocessing`, `helpers
+  - Use lowercase names with underscores to separate words. Example: `my_file`, `pre_processing`, `helpers`
 
 ---
 
@@ -55,8 +69,3 @@ def add_numbers(x: int, y: int) -> int:
   - Use lowercase names with no underscores. Example: `mypackage`
 
 ---
-
-This set of conventions ensures consistency and readability in your Python code.
-```
-
-You can copy and paste this Markdown code into your document or platform of choice.
