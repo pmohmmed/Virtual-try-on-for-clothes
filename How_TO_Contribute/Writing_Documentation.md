@@ -41,7 +41,7 @@ def test_function(p1, p2, p3):
 ### Naming Convention:
 - Choose meaningful name.
 - Variables ( snake_case naming): Example: `my_name`, `name`
-- Constant Variables (UPPER_Case) : `PI=3.14` , ` MY_VARIABLE `
+- Constant Variables (UPPER_CASE) : `PI=3.14` , ` MY_VARIABLE `
 
 #### Inside a Class:
 - Attributes inside the Class:
