@@ -81,3 +81,9 @@ res=0
   - Use lowercase names with no underscores. Example: `mypackage`
 
 ---
+# General Tips For The General Structure  🧠 :
+## - We don't use Global Variables.
+## - We can create file and add our function to that file.(Make sure that the file  is dedicated to one thing eg. preprocessing)
+## - We can create classes
+
+---
