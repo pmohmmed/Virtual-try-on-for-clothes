@@ -62,7 +62,7 @@ res=0
 # Writing a Class 🏛️ :
 
 ### Naming Convention:
-- (CamelCase naming): Example: `MyClass`, `Person`
+- (PascalCase  naming): Example: `MyClass`, `Person`
 
 ---
 
@@ -70,7 +70,7 @@ res=0
 
 ### Naming Convention:
 - Modules (Module is a Python file like `main.py`):
-  - Use lowercase names with underscores to separate words. Example: `my_file`, `pre_processing`, `helpers`
+  - Use lowercase names with underscores to separate words. Example: `my_file.py`, `preprocessing.py`, `helpers.py`
 
 ---
 
