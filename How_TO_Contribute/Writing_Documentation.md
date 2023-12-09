@@ -1,8 +1,7 @@
-# NOT FINISHED YET 
-
 # Writing Functions 😎 :
 
 ### Naming Conventions:
+- Choose meaningful name.
 - Functions (snake_case naming): Example: `my_func()`, `add()`
 
 #### Inside a Class:
@@ -16,10 +15,14 @@
 #### Define The Type of the Parameters and the Output in Python3
 ```python
 def add_numbers(x: int, y: int) -> int:
+    """
+    add_numbers does blah blah blah.
+
+    """ 
     result = x + y
     return result
 ```
-#### Or if you don't know exactly the types of the parameters
+#### Or if you don't know exactly the types of the parameters and return 
 ```python
 def test_function(p1, p2, p3):
     """
@@ -36,6 +39,7 @@ def test_function(p1, p2, p3):
 # Writing Variables 📝 :
 
 ### Naming Convention:
+- Choose meaningful name.
 - Variables ( snake_case naming): Example: `my_name`, `name`
 - Constant Variables (UPPER_Case) : `PI=3.14` , ` MY_VARIABLE `
 
@@ -44,6 +48,14 @@ def test_function(p1, p2, p3):
   - **Public:** Example: `my_name`
   - **Protected:** Example: `_my_name`
   - **Private:** Example: `__my_name`
+
+### Variable Structure: 
+
+#### Add comment above the variable.
+```python
+# variable of type int to store the result 
+res=0
+```
 
 ---
 
