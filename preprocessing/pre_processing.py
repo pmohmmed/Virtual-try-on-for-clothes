@@ -24,3 +24,8 @@ def data_augmentation(data):
 
 def remove_image_background(images):
     pass
+
+def noise_removal():
+    #TODO
+def sharpening():
+    #TODO
