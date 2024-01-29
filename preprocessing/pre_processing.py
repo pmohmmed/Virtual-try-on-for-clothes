@@ -9,11 +9,11 @@ def image_resizing(images):
 
 
 
-
+# Omar & Masry
 def images_normalization(images):
     pass
 
-
+# 
 def data_splitting(data):
     pass
 
@@ -21,11 +21,13 @@ def data_splitting(data):
 def data_augmentation(data):
     pass
 
-
+# Karim & Walid
 def remove_image_background(images):
     pass
 
+# Mustafa
 def noise_removal():
     #TODO
+# Mody
 def sharpening():
     #TODO
