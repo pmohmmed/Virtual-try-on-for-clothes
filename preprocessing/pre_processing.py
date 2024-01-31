@@ -22,6 +22,7 @@ def data_augmentation(data):
     pass
 
 # Karim & Walid
+# Why removing image background is a bad idea => https://shorturl.at/dqrzG
 def remove_image_background(images):
     pass
 
