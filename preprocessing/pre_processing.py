@@ -50,3 +50,7 @@ def sharpen_laplacian(image):
   # This ensures that the Laplacian operation's output is stored in a 64-bit... 
   # ...floating-point format for more accurate representation of the calculated values.
   sharpened_image = cv2.Laplacian(image, cv2.CV_64F)
+
+
+def histogram_equalization():
+    #TODO
