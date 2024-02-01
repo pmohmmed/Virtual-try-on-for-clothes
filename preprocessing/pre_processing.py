@@ -30,5 +30,23 @@ def remove_image_background(images):
 def noise_removal():
     #TODO
 # Mody
-def sharpening():
-    #TODO
+def read_image(path):
+  image = cv2.imread(path)
+  # OpenCV reads images in BGR format, so you might want to convert it to RGB
+  image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+  return image
+def sharpen(image):
+    # Define a 3x3 sharpening kernel
+    kernel = np.array([[0, -1, 0],
+                       [-1, 5, -1],
+                       [0, -1, 0]])
+    # Apply the sharpening filter using the filter2D function from OpenCV
+    # -1 as the ddepth parameter means the output image will have the same depth as the input image
+    image_sharp = cv2.filter2D(src=image, ddepth=-1, kernel=kernel)
+    # Return the sharpened image
+    return image_sharp
+def sharpen_laplacian(image):
+  # Sharpen the image using the Laplacian operator
+  # This ensures that the Laplacian operation's output is stored in a 64-bit... 
+  # ...floating-point format for more accurate representation of the calculated values.
+  sharpened_image = cv2.Laplacian(image, cv2.CV_64F)
