@@ -52,5 +52,15 @@ def sharpen_laplacian(image):
   sharpened_image = cv2.Laplacian(image, cv2.CV_64F)
 
 
-def histogram_equalization():
-    #TODO
+
+# YCpCr color space VS RGB(Youtube Video explanation) => https://shorturl.at/hikX2
+# Stackoverflow thread of how to use YCpCr color space for efficient histogram equalization => https://shorturl.at/lrw56
+def histogram_equalization(img):
+    ycrcb=cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB)
+    channels=cv2.split(ycrcb)
+    print len(channels)
+    cv2.equalizeHist(channels[0],channels[0])
+    cv2.merge(channels,ycrcb)
+    cv2.cvtColor(ycrcb,cv2.COLOR_YCR_CB2BGR,img)
+    return img
+    
