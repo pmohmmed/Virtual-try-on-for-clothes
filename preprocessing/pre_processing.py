@@ -54,6 +54,7 @@ def noise_removal(images, filter,kernal, standard = 1):
 
 #Temp
 image = cv2.imread('00260_00.jpg') 
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 imgs = np.array([image,image])
 filtered_img = noise_removal(imgs, 2, (21,21),0.2)
