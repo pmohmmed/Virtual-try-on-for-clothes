@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 def image_resizing(images):
     img = cv2.imread('filename.jpg')
@@ -27,8 +28,39 @@ def remove_image_background(images):
     pass
 
 # Mustafa
-def noise_removal():
-    #TODO
+
+def noise_removal(images, filter,kernal, standard = 1):
+    """_summary_
+
+    Args:
+        images (narray): 4d array of all RGB images
+        filter (int): median(0), mean(1), gausian(2)
+        kernal (int/(int,int)): median->int, mean & gausian -> (int,int)
+        standard (int): control the distributionn of gusian filter, higher value will get more bluring
+    """
+    result = []
+
+    for img in images:
+
+        if(filter == 0):
+            result.append(cv2.medianBlur(img, kernal) )
+        elif(filter == 1):
+            result.append(cv2.blur(img,kernal) )
+        elif(filter == 2):
+            result.append(cv2.GaussianBlur(img, kernal, standard) )
+
+
+    return result
+
+#Temp
+image = cv2.imread('00260_00.jpg') 
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+imgs = np.array([image,image])
+filtered_img = noise_removal(imgs, 2, (21,21),0.2)
+
+
+    
 # Mody
 def read_image(path):
   image = cv2.imread(path)
