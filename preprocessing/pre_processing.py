@@ -1,5 +1,9 @@
 import cv2
+from PIL import Image
+import matplotlib.pyplot as plt
 import numpy as np
+import torchvision.transforms as transforms
+from torchvision import transforms
 
 def image_resizing(images):
     img = cv2.imread('filename.jpg')
@@ -12,9 +16,45 @@ def image_resizing(images):
 
 # Omar & Masry
 def images_normalization(images):
-    pass
+    # load the image
+    img_path = 'Lion.jpg'
+    img = Image.open(img_path)
+ 
+    # define custom transform function
+    transform = transforms.Compose([
+    transforms.ToTensor()
+    ])
+ 
+    # transform the pIL image to tensor 
+    # image
+    img_tr = transform(img)
+ 
+    # calculate mean and std
+    mean, std = img_tr.mean([1,2]), img_tr.std([1,2])
+ 
+ 
+    # define custom transform
+    # here we are using our calculated
+    # mean & std
+    transform_norm = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std)
+    ])
+ 
+    # get normalized image
+    img_normalized = transform_norm(img)
+ 
+    # convert this image to numpy array
+    img_normalized = np.array(img_normalized)
+ 
+    # transpose from shape of (3,,) to shape of (,,3)
+    img_normalized = img_normalized.transpose(1, 2, 0)
+ 
+    # display the normalized image
+    plt.imshow(img_normalized)
+    plt.xticks([])
+    plt.yticks([])
 
-# 
 def data_splitting(data):
     pass
 
