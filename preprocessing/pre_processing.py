@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torchvision.transforms as transforms
 from torchvision import transforms
+import math
 
 def image_resizing(images):
     img = cv2.imread('filename.jpg')
@@ -135,4 +136,110 @@ def histogram_equalization(img):
     cv2.merge(channels,ycrcb)
     cv2.cvtColor(ycrcb,cv2.COLOR_YCR_CB2BGR,img)
     return img
+
+
+def brightness_control(img, value=30):
+    """
+    Args:
+        - img (ndarray): BGR numpy array for an image
+        - value (float): value of the (increasing/decreasing) brightness
+
+    Returns:
+        img (ndarray): the modified brightness image
+    """
     
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    lim = 255 - value
+    v[v > lim] = 255
+    v[v <= lim] += value
+
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return img
+
+def saturation_control(img, value=30):
+    
+    """
+    Args:
+        - img (ndarray): BGR numpy array for an image
+        - value (float): value of the (increasing/decreasing) saturation
+
+    Returns:
+        - img (ndarray): the modified saturation image
+    """
+    
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    lim = 255 - value
+    s[s > lim] = 255
+    s[s <= lim] += value
+
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return img
+
+
+def minmax_scaler(channel):
+  mini = np.min(channel)
+  maxi = np.max(channel)
+  for i in range(channel.shape[0]):
+    for j in range(channel.shape[1]):
+        channel[i,j] = 255*(channel[i,j]-mini)/(maxi-mini)
+  return channel
+
+def minmax_contrast_stretching(img):
+  hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+  h, s, v = cv2.split(hsv)
+  y = minmax_scaler(y)
+  stretched_img_hsv = cv2.merge((h, s, v))
+  stretched_img_hsv = cv2.cvtColor(stretched_img_hsv, cv2.COLOR_HSV2BGR)
+  return stretched_img_hsv
+
+def needs_histogram_equalization(img):
+    """
+    Checks if an image might benefit from histogram equalization based on several criteria.
+
+    Args:
+        image (str): the image file.
+
+    Returns:
+        bool: True if HE is likely to improve the image, False otherwise.
+    """
+    # Calculate various metrics to assess the need for HE:
+    # 1. Standard deviation (low SD suggests limited contrast)
+    std_dev = np.std(img)
+
+    # 2. Entropy (low entropy indicates low contrast/information)
+    entropy = -np.sum(np.histogram(img, bins=256)[0] * np.log2(np.histogram(img, bins=256)[0] + 1e-8))
+
+    # 3. Michelson contrast (measures average contrast across the image)
+    max_intensity = np.max(img)
+    min_intensity = np.min(img)
+    michelson_contrast = (max_intensity - min_intensity) / (max_intensity + min_intensity)
+
+    # 4. Otsu's threshold (globally optimal thresholding can indicate bimodal/low-contrast distributions)
+    #_, otsu_thresh = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # 5. Histogram shape (peaked histogram suggests HE potential)
+    hist, _ = np.histogram(img.ravel(), bins=256)
+    peakedness = np.max(hist) / np.sum(hist)  # Ratio of max value to total counts
+
+    # Combine metrics using weighted decision rules:
+    low_contrast_threshold = 55  # Adjust based on image types and preferences
+    low_michelson_threshold = 1  # Adjust based on desired minimum contrast
+    #low_information_threshold = 3  # Adjust based on expected entropy values
+
+    low_contrast = std_dev < low_contrast_threshold
+    low_michelson = michelson_contrast < low_michelson_threshold
+    #low_information = entropy < low_information_threshold
+    #peaked_histogram = peakedness > 0.1  # Adjust based on expected histogram shapes
+    print(f'\n\n\n\t\t\t---Image Info---\n std == {std_dev}\n entropy == {entropy}\n mc == {michelson_contrast}\n peakedness == {peakedness}\n\n')
+    if low_contrast or low_michelson or math.isinf(michelson_contrast):
+        # Consider these indicators suggestive of potential HE benefit
+        return True
+    else:
+        return False
+
