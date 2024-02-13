@@ -15,6 +15,16 @@ class BaseDataset(data.Dataset):
         pass
 
 def get_params(opt, size):
+    """
+    Args: 
+        - opt (object): an object of class TrainOperation() which include all configuration and hyperparamters to set
+        - size (int,int): tuple contain Height and Width of an image
+
+    Output:
+        - crop_pos (int,int): assuming that the image start point from top left corner (0,0), this parameter define the end point for the image
+                                and beyond that is ignored
+        - flip (0) : ??
+    """
     w, h = size
     new_h = h
     new_w = w
@@ -86,6 +96,7 @@ def get_transform(opt, params, method=Image.BICUBIC, normalize=True):
 def normalize():    
     return transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
+# __make_power_2 : Ensures the image dimensions are powers of 2 by rounding up to the nearest multiple of a given base.
 def __make_power_2(img, base, method=Image.BICUBIC):
     ow, oh = img.size        
     h = int(round(oh / base) * base)
@@ -94,6 +105,7 @@ def __make_power_2(img, base, method=Image.BICUBIC):
         return img
     return img.resize((w, h), method)
 
+# __scale_width : Assign image width to a target value, but maintain the aspect ratio between height and width
 def __scale_width(img, target_width, method=Image.BICUBIC):
     ow, oh = img.size
     if (ow == target_width):
