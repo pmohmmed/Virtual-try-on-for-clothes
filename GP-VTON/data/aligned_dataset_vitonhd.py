@@ -47,9 +47,9 @@ class AlignedDataset(BaseDataset):
             if self.resolution == 1024:
                 P_path = P_path.replace('.png', '.jpg')
                 C_path = C_path.replace('.png', '.jpg')
-            self.P_paths.append(P_path)
-            self.C_paths.append(C_path)
-            self.C_types.append(c_type)
+            self.P_paths.append(P_path) #each element of this list contain the full path of a Person image 
+            self.C_paths.append(C_path) # each element of this list contain the full path of the stand-alone garment 
+            self.C_types.append(c_type) # clothes type ????? 
 
         ratio_dict = None
         if self.mode == 'train':
