@@ -16,9 +16,9 @@ import json
 class AlignedDataset(BaseDataset):
     def initialize(self, opt, mode='train'):
         self.opt = opt
-        self.root = opt.dataroot
-        self.warproot = opt.warproot
-        self.resolution = opt.resolution
+        self.root = opt.dataroot # dataset/VITON_traindata/
+        self.warproot = opt.warproot # dataset/warped_garment/
+        self.resolution = opt.resolution # Resolution != image_size(width,hegiht) && Resolution == Image_quality == Pixel per inch(PPI)
 
         if self.resolution == 512:
             self.fine_height=512
