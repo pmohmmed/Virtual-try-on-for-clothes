@@ -229,7 +229,19 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         class_weight  = torch.FloatTensor([1,40,5,40,30,30,40]).cuda()
         criterionCE = nn.CrossEntropyLoss(weight=class_weight)
 
+        """
+        This next inner loop iterates five times, likely corresponding to different scales or resolutions of the input data. 
+        Each iteration processes the output of the model at a particular scale and calculates the losses associated with that scale. 
+        """
+
         for num in range(5):
+            
+            """
+            This line interpolates the ground truth segmentation labels to match the current scale (num). 
+            The interpolation factor decreases exponentially, starting from 1 (no scaling) at num=4 and going down to 0.125 at num=0. 
+            The mode='nearest' specifies that nearest-neighbor interpolation is used, 
+            which is a simple method that assigns the value of the nearest pixel to the target location.
+            """
             cur_seg_label_tensor = F.interpolate(
                 seg_label_tensor, scale_factor=0.5**(4-num), mode='nearest').cuda()
 
