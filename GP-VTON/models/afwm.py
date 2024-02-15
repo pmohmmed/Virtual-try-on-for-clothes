@@ -13,7 +13,7 @@ def apply_offset(offset):
     sizes = list(offset.size()[2:])
     grid_list = torch.meshgrid(
         [torch.arange(size, device=offset.device) for size in sizes])
-    grid_list = reversed(grid_list)
+    grid_list = reversed(grid_list)   
     # apply offset
     grid_list = [grid.float().unsqueeze(0) + offset[:, dim, ...]
                  for dim, grid in enumerate(grid_list)]
@@ -219,6 +219,7 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
                 torch.nn.Conv2d(in_channels=32, out_channels=2,
                                 kernel_size=3, stride=1, padding=1)
             )
+            
             netTorsoMain_layer = torch.nn.Sequential(
                 torch.nn.Conv2d(in_channels=49, out_channels=128,
                                 kernel_size=3, stride=1, padding=1),
@@ -324,16 +325,17 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
                 nn.Conv2d(fpn_dim*3, fpn_dim, kernel_size=1),
                 ResBlock(fpn_dim)
             )
-
+            # Coarse
             self.netLeftMain.append(netLeftMain_layer)
             self.netTorsoMain.append(netTorsoMain_layer)
             self.netRightMain.append(netRightMain_layer)
-
+            # Fine
             self.netLeftRefine.append(netRefine_left_layer)
             self.netTorsoRefine.append(netRefine_torso_layer)
             self.netRightRefine.append(netRefine_right_layer)
 
             self.netAttentionRefine.append(netAttentionRefine_layer)
+            # Global parsing
             self.netPartFusion.append(partFusion_layer)
             self.netSeg.append(netSeg_layer)
 
@@ -350,7 +352,15 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
         self.netSeg = nn.ModuleList(self.netSeg)
         self.softmax = torch.nn.Softmax(dim=1)
 
-
+    # x -> three parts of the garment(left, right, torso)
+    # x_edge -> edge of the three parts
+    # x_full -> garment 
+    # x_edge_full -> full garment edge
+    # x_waprs -> FPN of garment
+    # x_conds -> FPN of person
+    # perserve_mask -> of the person
+    # warp_feature -> for applying warping
+    
     def forward(self, x, x_edge, x_full, x_edge_full, x_warps, x_conds, preserve_mask, warp_feature=True):
         last_flow = None
         last_flow_all = []
@@ -381,68 +391,107 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
         weight_array[:, :, 0, 2] = filter_diag1
         weight_array[:, :, 0, 3] = filter_diag2
 
+        # convert to tensor and move it to GPU memory
+        # change dimenensions
+        # make it a prarameter
         weight_array = torch.cuda.FloatTensor(weight_array).permute(3, 2, 0, 1)
         self.weight = nn.Parameter(data=weight_array, requires_grad=False)
 
+        # loop on number of blocks "scales"
+        # 5(LFGP)blocks
         for i in range(len(x_warps)):
-            x_warp = x_warps[len(x_warps) - 1 - i]
-            x_cond = x_conds[len(x_warps) - 1 - i]
+            # reversed
+            # upsampling ( started from the deepest layers)
+            x_warp = x_warps[len(x_warps) - 1 - i] #gi
+            x_cond = x_conds[len(x_warps) - 1 - i] #pi
 
-            x_cond_concate = torch.cat([x_cond,x_cond,x_cond],0)
-            x_warp_concate = torch.cat([x_warp,x_warp,x_warp],0)
-
+            # --- Coarse
+            # dulicat features (3)
+            x_cond_concate = torch.cat([x_cond,x_cond,x_cond],0)#pd # person feature-map from fpn
+            x_warp_concate = torch.cat([x_warp,x_warp,x_warp],0)#gd # garment feature-map from fpn
+          
+            
+            #apply flows (warp)
             if last_flow is not None and warp_feature:
                 x_warp_after = F.grid_sample(x_warp_concate, last_flow.detach().permute(0, 2, 3, 1),
                                              mode='bilinear', padding_mode='border')
-            else:
+            else:#first scale
                 x_warp_after = x_warp_concate
-
+            #gw
+            
+            
+            #correlation
+            #apply leaky_relu on the output of correlation
             tenCorrelation = F.leaky_relu(input=correlation.FunctionCorrelation(
-                tenFirst=x_warp_after, tenSecond=x_cond_concate, intStride=1), negative_slope=0.1, inplace=False)
+                tenFirst=x_warp_after, tenSecond=x_cond_concate, intStride=1), negative_slope=0.1, inplace=False)#gp
             
             bz = x_cond.size(0)
-
+            #seperate the (left, torso, right) for CNN training
             left_tenCorrelation = tenCorrelation[0:bz]
             torso_tenCorrelation = tenCorrelation[bz:2*bz]
             right_tenCorrelation = tenCorrelation[2*bz:]
-
+            
+            #CNN
+            #train seperately 
             left_flow = self.netLeftMain[i](left_tenCorrelation)
             torso_flow = self.netTorsoMain[i](torso_tenCorrelation)
             right_flow = self.netRightMain[i](right_tenCorrelation)
 
-            flow = torch.cat([left_flow,torso_flow,right_flow],0)
-
+            flow = torch.cat([left_flow,torso_flow,right_flow],0) #fi
+            
             delta_list.append(flow)
-            flow = apply_offset(flow)
+            
+            
+            
+            # computes a set of grid points
+            # applies the offsets to the grid points,
+            # normalizes the resulting grid points
+            flow = apply_offset(flow) # common operation on image warping
+            
+
+            
+          
+            #addition
             if last_flow is not None:
                 flow = F.grid_sample(last_flow, flow, mode='bilinear', padding_mode='border')
-            else:
+            else: 
                 flow = flow.permute(0, 3, 1, 2)
-
-            last_flow = flow
+                
+            last_flow = flow #fout
+            
+            #-- fine --- 
             x_warp_concate = F.grid_sample(x_warp_concate, flow.permute(
-                0, 2, 3, 1), mode='bilinear', padding_mode='border')
-
+                0, 2, 3, 1), mode='bilinear', padding_mode='border') #gw
+            
+            # concatenation gw || pd
             left_concat = torch.cat([x_warp_concate[0:bz], x_cond_concate[0:bz]], 1)
             torso_concat = torch.cat([x_warp_concate[bz:2*bz], x_cond_concate[bz:2*bz]],1)
             right_concat = torch.cat([x_warp_concate[2*bz:], x_cond_concate[2*bz:]],1)
-
+            #gp
+            
+            
+            # attention
             x_attention = torch.cat([x_warp_concate[0:bz],x_warp_concate[bz:2*bz],x_warp_concate[2*bz:],x_cond],1)
             fused_attention = self.netAttentionRefine[i](x_attention)
             fused_attention = self.softmax(fused_attention)
+            
 
+            # CNN
             left_flow = self.netLeftRefine[i](left_concat)
             torso_flow = self.netTorsoRefine[i](torso_concat)
             right_flow = self.netRightRefine[i](right_concat)   
+            #fi
 
             flow = torch.cat([left_flow,torso_flow,right_flow],0)
             delta_list.append(flow)
             flow = apply_offset(flow)
-            flow = F.grid_sample(last_flow, flow, mode='bilinear', padding_mode='border')
+             
+
 
             fused_flow = flow[0:bz] * fused_attention[:,0:1,...] + \
                          flow[bz:2*bz] * fused_attention[:,1:2,...] + \
                          flow[2*bz:] * fused_attention[:,2:3,...]
+                         
             last_fused_flow = F.interpolate(fused_flow, scale_factor=2, mode='bilinear')
 
             fused_attention = F.interpolate(fused_attention, scale_factor=2, mode='bilinear')
@@ -455,8 +504,8 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
             cur_x_edge_full_warp = F.grid_sample(cur_x_edge_full, last_fused_flow.permute(0, 2, 3, 1), mode='bilinear', padding_mode='zeros')
             x_edge_full_all.append(cur_x_edge_full_warp)
 
-            last_flow = F.interpolate(flow, scale_factor=2, mode='bilinear')
-            last_flow_all.append(last_flow)
+            last_flow = F.interpolate(flow, scale_factor=2, mode='bilinear')#fk
+            last_flow_all.append(last_flow)# fk{1-5}
 
             cur_x = F.interpolate(x, scale_factor=0.5 ** (len(x_warps)-1-i), mode='bilinear')
             cur_x_warp = F.grid_sample(cur_x, last_flow.permute(0, 2, 3, 1), mode='bilinear', padding_mode='zeros')
@@ -470,17 +519,23 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
             delta_y = F.conv2d(flow_y, self.weight)
             delta_x_all.append(delta_x)
             delta_y_all.append(delta_y)
-
+            
+            # GP
             # predict seg
             cur_preserve_mask = F.interpolate(preserve_mask, scale_factor=0.5 ** (len(x_warps)-1-i), mode='bilinear')
             x_warp = x_warps[len(x_warps) - 1 - i]
             x_cond = x_conds[len(x_warps) - 1 - i]
 
-            x_warp = torch.cat([x_warp,x_warp,x_warp],0)
+            # dublicate garment
+            x_warp = torch.cat([x_warp,x_warp,x_warp],0)#gd
+            
             x_warp = F.interpolate(x_warp, scale_factor=2, mode='bilinear')
             x_cond = F.interpolate(x_cond, scale_factor=2, mode='bilinear')
 
+            # warp  
             x_warp = F.grid_sample(x_warp, last_flow.permute(0, 2, 3, 1),mode='bilinear', padding_mode='border')
+            # gw
+            
             x_warp_left = x_warp[0:bz]
             x_warp_torso = x_warp[bz:2*bz]
             x_warp_right = x_warp[2*bz:]
@@ -494,10 +549,15 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
             x_warp_right = x_warp_right * x_edge_right * (1-cur_preserve_mask)
             
             x_warp = torch.cat([x_warp_left,x_warp_torso,x_warp_right],1)
-            x_warp = self.netPartFusion[i](x_warp)
-
-            concate = torch.cat([x_warp,x_cond],1)
-            seg = self.netSeg[i](concate)
+            
+            # conv
+            x_warp = self.netPartFusion[i](x_warp)#gg
+            
+            # concatenate
+            concate = torch.cat([x_warp,x_cond],1)#gp
+            
+            #conv
+            seg = self.netSeg[i](concate)#S`
             seg_list.append(seg)
 
         return last_flow, last_flow_all, delta_list, x_all, x_edge_all, delta_x_all, delta_y_all, x_full_all, \
@@ -505,6 +565,7 @@ class AFlowNet_Vitonhd_lrarms(nn.Module):
 
 # TODO (1)
 # Controller
+
 class AFWM_Vitonhd_lrarms(nn.Module):
     def __init__(self, opt, input_nc, clothes_input_nc=3):
         super(AFWM_Vitonhd_lrarms, self).__init__()
@@ -519,22 +580,31 @@ class AFWM_Vitonhd_lrarms(nn.Module):
         self.aflow_net = AFlowNet_Vitonhd_lrarms(len(num_filters))
         self.old_lr = opt.lr
         self.old_lr_warp = opt.lr*0.2
-
+    # image_input -> garment
+    # image_label_input -> garment segmentation
     def forward(self, cond_input, image_input, image_edge, image_label_input, image_input_left, image_input_torso, \
                 image_input_right, image_edge_left, image_edge_torso, image_edge_right, preserve_mask):
-        image_input_concat = torch.cat([image_input, image_label_input],1)
+        
+        ## Features and FPN
+        image_input_concat = torch.cat([image_input, image_label_input],1) # garment fpn & segmentation
 
         image_pyramids = self.image_FPN(self.image_features(image_input_concat))
-        cond_pyramids = self.cond_FPN(self.cond_features(cond_input))  # maybe use nn.Sequential
+        cond_pyramids = self.cond_FPN(self.cond_features(cond_input)) # person fpn # maybe use nn.Sequential
 
+        # Concatenate the different parts of the image (left, right, and torso) 
         image_concat = torch.cat([image_input_left,image_input_torso,image_input_right],0)
         image_edge_concat = torch.cat([image_edge_left, image_edge_torso, image_edge_right],0)
 
+        # start the cascade LFGP
         last_flow, last_flow_all, delta_list, x_all, x_edge_all, delta_x_all, delta_y_all, \
             x_full_all, x_edge_full_all, attention_all, seg_list = self.aflow_net(image_concat, \
             image_edge_concat, image_input, image_edge, image_pyramids, cond_pyramids, \
             preserve_mask)
+            
 
+        # last_flow : fk of last block
+        # last_flow_all: fk of all blocks (history)
+        # seg_list: S`(history)
         return last_flow, last_flow_all, delta_list, x_all, x_edge_all, delta_x_all, delta_y_all, \
                 x_full_all, x_edge_full_all, attention_all, seg_list
 
