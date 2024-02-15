@@ -16,9 +16,9 @@ import json
 class AlignedDataset(BaseDataset):
     def initialize(self, opt, mode='train'):
         self.opt = opt
-        self.root = opt.dataroot
-        self.warproot = opt.warproot
-        self.resolution = opt.resolution
+        self.root = opt.dataroot # dataset/VITON_traindata/
+        self.warproot = opt.warproot # dataset/warped_garment/
+        self.resolution = opt.resolution # Resolution != image_size(width,hegiht) && Resolution == Image_quality == Pixel per inch(PPI)
 
         if self.resolution == 512:
             self.fine_height=512
@@ -47,9 +47,9 @@ class AlignedDataset(BaseDataset):
             if self.resolution == 1024:
                 P_path = P_path.replace('.png', '.jpg')
                 C_path = C_path.replace('.png', '.jpg')
-            self.P_paths.append(P_path)
-            self.C_paths.append(C_path)
-            self.C_types.append(c_type)
+            self.P_paths.append(P_path) #each element of this list contain the full path of a Person image 
+            self.C_paths.append(C_path) # each element of this list contain the full path of the stand-alone garment 
+            self.C_types.append(c_type) # clothes type ????? 
 
         ratio_dict = None
         if self.mode == 'train':

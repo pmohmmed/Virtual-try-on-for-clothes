@@ -28,12 +28,19 @@ os.makedirs(sample_path, exist_ok=True)
 os.makedirs(run_path, exist_ok=True)
 iter_path = os.path.join(opt.checkpoints_dir, opt.name, 'iter.txt')
 
+############################################
+"""
+GPT3-Description: 
+Here, the script sets the current CUDA device and initializes the distributed process group for multi-GPU training. 
+It then creates the dataset, sampler, and data loader for training, considering distributed training settings specified in the options.
+"""
 torch.cuda.set_device(opt.local_rank)
 torch.distributed.init_process_group(
     'nccl',
     init_method='env://'
 )
 device = torch.device(f'cuda:{opt.local_rank}')
+#############################################
 
 train_data = CreateDataset(opt)
 train_sampler = DistributedSampler(train_data)
@@ -41,6 +48,11 @@ train_loader = DataLoader(train_data, batch_size=opt.batchSize, shuffle=False,
                           num_workers=4, pin_memory=True, sampler=train_sampler)
 dataset_size = len(train_loader)
 
+#############################################
+"""
+the main model (AFWM_Vitonhd_lrarms) is initialized and moved to the GPU. If a pre-trained checkpoint for the warp model is provided, 
+it is loaded. SyncBatchNorm conversion and distributed data parallelism are applied if specified in the options.
+"""
 warp_model = AFWM_Vitonhd_lrarms(opt, 51)
 warp_model.train()
 warp_model.cuda()
@@ -50,6 +62,7 @@ warp_model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(warp_model).to(device
 if opt.isTrain and len(opt.gpu_ids):
     model = torch.nn.parallel.DistributedDataParallel(
         warp_model, device_ids=[opt.local_rank])
+#################################################
 
 params_warp = [p for p in model.parameters()]
 optimizer_warp = torch.optim.Adam(
@@ -88,7 +101,7 @@ step = 0
 step_per_batch = dataset_size
 
 for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
-    epoch_start_time = time.time()
+    epoch_start_time = time.time() 
     if epoch != start_epoch:
         epoch_iter = epoch_iter % dataset_size
     train_sampler.set_epoch(epoch)
@@ -216,7 +229,19 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         class_weight  = torch.FloatTensor([1,40,5,40,30,30,40]).cuda()
         criterionCE = nn.CrossEntropyLoss(weight=class_weight)
 
+        """
+        This next inner loop iterates five times, likely corresponding to different scales or resolutions of the input data. 
+        Each iteration processes the output of the model at a particular scale and calculates the losses associated with that scale. 
+        """
+
         for num in range(5):
+            
+            """
+            This line interpolates the ground truth segmentation labels to match the current scale (num). 
+            The interpolation factor decreases exponentially, starting from 1 (no scaling) at num=4 and going down to 0.125 at num=0. 
+            The mode='nearest' specifies that nearest-neighbor interpolation is used, 
+            which is a simple method that assigns the value of the nearest pixel to the target location.
+            """
             cur_seg_label_tensor = F.interpolate(
                 seg_label_tensor, scale_factor=0.5**(4-num), mode='nearest').cuda()
 
